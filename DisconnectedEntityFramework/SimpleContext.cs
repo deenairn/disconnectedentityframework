@@ -31,7 +31,7 @@ namespace DisconnectedEntityFramework
             modelBuilder.Entity<ChildEntity>()
                 .HasRequired(sb => sb.ParentEntity);
             modelBuilder.Entity<ChildEntity>()
-                .HasMany(sb => sb.CustomerProfiles);
+                .HasMany(sb => sb.ChildEntityReferencingChildEntities);
         }
     }
 }

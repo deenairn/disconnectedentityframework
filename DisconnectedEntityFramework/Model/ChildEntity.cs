@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using RefactorThis.GraphDiff.Attributes;
 
 namespace DisconnectedEntityFramework.Model
 {
@@ -8,6 +9,7 @@ namespace DisconnectedEntityFramework.Model
 
         public ParentEntity ParentEntity { get; set; }
 
-        public ICollection<ChildEntityReferencingChildEntity> CustomerProfiles { get; set; }
+        [Associated]
+        public ICollection<ChildEntityReferencingChildEntity> ChildEntityReferencingChildEntities { get; set; }
     }
 }

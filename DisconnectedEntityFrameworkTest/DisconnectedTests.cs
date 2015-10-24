@@ -4,14 +4,15 @@ using System.Linq;
 using DisconnectedEntityFramework;
 using DisconnectedEntityFramework.Model;
 using NUnit.Framework;
+using RefactorThis.GraphDiff;
 
 namespace DisconnectedEntityFrameworkTest
 {
     [TestFixture]
     public class DisconnectedTests
     {
-        [Test]
-        public void FullySetupRelationshipsTest()
+        [Test, TestCase(true), TestCase(false)]
+        public void FullySetupRelationshipsTest(bool useGraphDiff)
         {
             // Arrange
             // Create untracked entities equivaelent to our collection
@@ -19,8 +20,7 @@ namespace DisconnectedEntityFrameworkTest
             var childEntities = new List<ChildEntity>
                 {
                     new ChildEntity {Id = 1, Name = "ChildEntity 1", ParentEntityId = 1},
-                    //new ChildEntity {Id = 2, Name = "ChildEntity 2", ParentEntityId = 2},
-                    new ChildEntity {Name = "ChildEntity 3", ParentEntityId = 1}
+                    new ChildEntity {Id = default(long), Name = "ChildEntity 3", ParentEntityId = 1}
                 };
 
             var childEntityReferencingChildEntities = new List<ChildEntityReferencingChildEntity>
@@ -35,12 +35,22 @@ namespace DisconnectedEntityFrameworkTest
                     },
                     new ChildEntityReferencingChildEntity
                     {
+                        Id = default(long),
                         Name = "ChildEntityReferencingChildEntity 3",
                         ChildEntityId = default(long),
                         ChildEntity = childEntities.Last(), // untracked and not yet added
                         ParentEntityId = 1
                     }
                 };
+
+            // If this relationship is already established then the entities must be added
+            childEntities.First().ChildEntityReferencingChildEntities =
+                childEntityReferencingChildEntities.Where(x => x.ChildEntityId == 1).ToList();
+
+            // GraphDiff cannot handle this situation where a collection is added
+            // Must have an existing Id or else EF fails.
+            //childEntities.Last().ChildEntityReferencingChildEntities =
+            //    childEntityReferencingChildEntities.Where(x => x.ChildEntityId == default(long)).ToList();
 
             var parentEntity = new ParentEntity
             {
@@ -54,8 +64,13 @@ namespace DisconnectedEntityFrameworkTest
             // act
             using (var context = new SimpleContext())
             {
-                var entry = context.Entry(parentEntity);
-                entry.State = EntityState.Modified;
+                // force re-seed database every time
+                context.Database.Initialize(true);
+
+                if (useGraphDiff)
+                {
+                    context.UpdateGraph(parentEntity);
+                }
 
                 context.SaveChanges();
             }
@@ -63,7 +78,6 @@ namespace DisconnectedEntityFrameworkTest
             // assert
             using (var context = new SimpleContext())
             {
-                context.Configuration.LazyLoadingEnabled = false;
                 var persistedParentEntity = context.ParentEntities.Find(parentEntity.Id);
 
                 context.Entry(persistedParentEntity)
@@ -72,8 +86,32 @@ namespace DisconnectedEntityFrameworkTest
                 context.Entry(persistedParentEntity)
                     .Collection(x => x.ChildReferencingChildEntities).Load();
 
+                Assert.That(persistedParentEntity.Id, Is.EqualTo(parentEntity.Id));
+                Assert.That(persistedParentEntity.Name, Is.EqualTo(parentEntity.Name));
+                Assert.That(persistedParentEntity.ChildEntities.Count, Is.EqualTo(parentEntity.ChildEntities.Count));
+                Assert.That(persistedParentEntity.ChildReferencingChildEntities.Count,
+                    Is.EqualTo(parentEntity.ChildReferencingChildEntities.Count));
 
-                Assert.That(persistedParentEntity, Is.EqualTo(parentEntity));
+
+                var zippedChildren = persistedParentEntity.ChildEntities.Zip(parentEntity.ChildEntities,
+                    (persisted, entity) => new {Persisted = persisted, Entity = entity});
+
+                foreach (var persistedAndEntity in zippedChildren)
+                {
+                    Assert.That(persistedAndEntity.Persisted.Name, Is.EqualTo(persistedAndEntity.Entity.Name));
+                    Assert.That(persistedAndEntity.Persisted.ParentEntityId, Is.EqualTo(persistedAndEntity.Entity.ParentEntityId));
+                }
+
+                var zippedChildReferencingChildren =
+                    persistedParentEntity.ChildReferencingChildEntities.Zip(parentEntity.ChildReferencingChildEntities,
+                        (persisted, entity) => new {Persisted = persisted, Entity = entity});
+
+                foreach (var persistedAndEntity in zippedChildReferencingChildren)
+                {
+                    Assert.That(persistedAndEntity.Persisted.Name, Is.EqualTo(persistedAndEntity.Entity.Name));
+                    Assert.That(persistedAndEntity.Persisted.ParentEntityId, Is.EqualTo(persistedAndEntity.Entity.ParentEntityId));
+                    Assert.That(persistedAndEntity.Persisted.ChildEntityId, Is.Not.Null); // should be added
+                }
             }
         }
     }
