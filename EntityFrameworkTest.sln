@@ -7,6 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DisconnectedEntityFramework
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DisconnectedEntityFrameworkTest", "DisconnectedEntityFrameworkTest\DisconnectedEntityFrameworkTest.csproj", "{FBADB7DB-FD7B-46FD-B401-AA63A22CB73B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DisconnectedEntityFramework7beta", "DisconnectedEntityFramework7beta\DisconnectedEntityFramework7beta.csproj", "{6FD418FA-8938-4995-ADF3-5297D4E6E7FB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DisconnectedEntityFramework7betaTest", "DisconnectedEntityFramework7betaTest\DisconnectedEntityFramework7betaTest.csproj", "{744D2D8F-09EB-4B75-88CC-2E561E9AFE8A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,14 @@ Global
 		{FBADB7DB-FD7B-46FD-B401-AA63A22CB73B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FBADB7DB-FD7B-46FD-B401-AA63A22CB73B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FBADB7DB-FD7B-46FD-B401-AA63A22CB73B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6FD418FA-8938-4995-ADF3-5297D4E6E7FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6FD418FA-8938-4995-ADF3-5297D4E6E7FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6FD418FA-8938-4995-ADF3-5297D4E6E7FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6FD418FA-8938-4995-ADF3-5297D4E6E7FB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{744D2D8F-09EB-4B75-88CC-2E561E9AFE8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{744D2D8F-09EB-4B75-88CC-2E561E9AFE8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{744D2D8F-09EB-4B75-88CC-2E561E9AFE8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{744D2D8F-09EB-4B75-88CC-2E561E9AFE8A}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
