@@ -1,8 +1,6 @@
 ﻿using DisconnectedEntityFramework7beta.Model;
 using Microsoft.Data.Entity;
 using Microsoft.Data.Entity.Infrastructure;
-using Microsoft.Data.Entity.Storage.Internal;
-using Microsoft.Data.Sqlite;
 
 namespace DisconnectedEntityFramework7beta
 {

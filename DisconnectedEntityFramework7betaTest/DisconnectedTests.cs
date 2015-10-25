@@ -1,8 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using DisconnectedEntityFramework7beta;
 using DisconnectedEntityFramework7beta.Model;
 using Microsoft.Data.Entity;
+using Microsoft.Data.Sqlite;
 using NUnit.Framework;
 
 namespace DisconnectedEntityFrameworkTest
@@ -10,8 +14,15 @@ namespace DisconnectedEntityFrameworkTest
     [TestFixture]
     public class DisconnectedTests
     {
-        [Test]
-        public void FullySetupRelationshipsTest()
+        public enum DatabaseType
+        {
+            InMemory,
+            Sqlite,
+            SqlServer
+        }
+
+        [Test, TestCase(DatabaseType.InMemory), TestCase(DatabaseType.Sqlite), TestCase(DatabaseType.SqlServer)]
+        public void FullySetupRelationshipsTest(DatabaseType databaseType)
         {
             // Arrange
             // Create untracked entities equivaelent to our collection
@@ -55,17 +66,49 @@ namespace DisconnectedEntityFrameworkTest
             {
                 Id = 1,
                 Name = "ParentEntity 1",
-                ChildEntities = childEntities.Where(x => x.Id == default(long) || x.Id == 1).ToList(),
+                ChildEntities = childEntities.Where(x => x.ParentEntityId == 1).ToList(),
                 ChildReferencingChildEntities =
-                    childEntityReferencingChildEntities.Where(x => x.Id == default(long) || x.Id == 1).ToList()
+                    childEntityReferencingChildEntities.Where(x => x.ParentEntityId == 1).ToList()
             };
 
             // act
             var optionsBuilder = new DbContextOptionsBuilder<SimpleContext>();
-            optionsBuilder.UseInMemoryDatabase();
+            switch (databaseType)
+            {
+                case DatabaseType.InMemory:
+                    optionsBuilder.UseInMemoryDatabase();
+                    break;
+                case DatabaseType.Sqlite:
+                    var connectionStringBuilder = new SqliteConnectionStringBuilder { DataSource = "test.db" };
+                    var connectionString = connectionStringBuilder.ToString();
+                    var connection = new SqliteConnection(connectionString);
+                    optionsBuilder.UseSqlite(connection);
+
+                    // Need to load in the Sqlite assemblies - overload assembly resolver
+                    // http://stackoverflow.com/questions/7264383/options-for-using-system-data-sqlite-in-a-32bit-and-64bit-c-sharp-world
+                    AppDomain.CurrentDomain.AssemblyResolve += (sender, args) =>
+                    {
+                        if (args.Name == "Sqlite3")
+                        {
+                            var path = Path.Combine(@"..\..\..\Lib\Sqlite3\", "Native");
+                            path = Path.Combine(path, Environment.Is64BitProcess ? @"x64\" : @"x32\");
+                            path = Path.Combine(path, "Sqlite3.dll");
+                            return Assembly.LoadFrom(path);
+                        }
+                        return null;
+                    };
+                    break;
+
+                case DatabaseType.SqlServer:
+                    optionsBuilder.UseSqlServer(@"Server=(LocalDB)\MSSQLLocalDB;Database=Test;integrated security=True;");
+                    break;
+            }
 
             using (var context = new SimpleContext(optionsBuilder.Options))
             {
+                // To ensure contents are empty delete contents for Sqlite
+                context.Database.EnsureDeleted();
+
                 // Ensure DB created
                 context.Database.EnsureCreated();
 
@@ -114,7 +157,9 @@ namespace DisconnectedEntityFrameworkTest
                 {
                     Assert.That(persistedAndEntity.Persisted.Name, Is.EqualTo(persistedAndEntity.Entity.Name));
                     Assert.That(persistedAndEntity.Persisted.ParentEntityId, Is.EqualTo(persistedAndEntity.Entity.ParentEntityId));
-                    Assert.That(persistedAndEntity.Persisted.ChildEntityId, Is.Not.Null); // should be added
+                    Assert.That(persistedAndEntity.Persisted.ChildEntityId, Is.EqualTo(
+                            persistedAndEntity.Entity.ChildEntityId == default(long) ?
+                                3 : persistedAndEntity.Entity.ChildEntityId)); // should be added following ef graph merge
                 }
             }
         }
